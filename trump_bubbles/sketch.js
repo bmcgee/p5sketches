@@ -14,7 +14,7 @@ var sketch = function(p) {
                         //get photos and size from json or dict
                 let numBubbles = 30;
                 for(let i=0; i < numBubbles; i++) {
-                        bubbles[i] = new Bubble(p.random(0.5, 10), p.random(0, p.width), p.random(0, p.height));
+                        bubbles[i] = new Bubble(p.random(0.5, 3), p.random(0, p.width), p.random(0, p.height));
                 };
         };
 
@@ -36,7 +36,7 @@ var sketch = function(p) {
 
                 for(let i = 0; i < bubbles.length; i++) {
                         let wind = p.createVector(p.noise(bubbles[i].pos.x), p.noise(bubbles[i].pos.y));
-                        let gravity = p.createVector(0, 2);
+                        let gravity = p.createVector(0, 1);
 
                         //console.log("Gravity", gravity);
 
@@ -76,7 +76,7 @@ var sketch = function(p) {
                 }
 
                 applyForce(force) {
-                        let f = p5.Vector.div(force, this.mass);
+                        let f = p5.Vector.mult(force, this.mass);
                         this.acc.add(f);
                 }
 
