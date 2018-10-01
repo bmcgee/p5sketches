@@ -24,6 +24,7 @@ var sketch = function(p) {
                 p.background(0);
                 p.fill(255);
                 p.text(p.frameCount, 30,30);
+                p.text((Math.floor(p.frameRate()) + " fps"), 30, 45);
                 //console.log("Frame: ", p.frameCount);
                 //increase radius on click
                         //increase hero bubble
