@@ -24,12 +24,21 @@ function FftVis() {
                                 rect(i * (width / this.barsNumber), height, (width / this.barsNumber), h);
                         }
                 } else if (spectView) {
-                        this.spectrum = this.fft.analyze(fftbands);
+                        this.spectrum = this.fft.analyze(fftbands, analyzeType);
                         for (var i = 0; i < fftbands; i++) {
-                                var x = map(i, 0, fftbands, 0, width);
-                                var h = -height / 2 + map(this.spectrum[i], 0, 255, height / 2, 0);
+                                let x = map(i, 0, fftbands, 0, width);
+                                //console.log(this.spectrum[i]);
+                                let spectMap;
+                                if (analyzeType == 'db') {
+                                        spectMap = map(this.spectrum[i], -100, -30,  height / 2, 0);
+                                }
+                                else {
+                                        spectMap = map(this.spectrum[i], 0, 255,  height / 2, 0);
+                                }
+
+                                let h = -height / 2 + spectMap;
                                 noStroke();
-                                fill(map(i, 0, fftbands, 0, 360), 100, 100, 30);
+                                fill(map(i, 0, fftbands, 0, 360), 255, 255, 200);
                                 rect(x, height, width / fftbands, h);
                         }
                 } else {
