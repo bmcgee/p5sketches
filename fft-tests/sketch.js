@@ -2,11 +2,8 @@
 let audio, master;
 let filter, filterFreq, filterRes;
 
-let temp;
-
 //let fftbands = 1024;
 let fftsmooth = .7;
-let ampsmooth = .8;
 
 //misc globals
 let logView = false;
@@ -16,10 +13,11 @@ var oct_bands = 4;
 var oct_center = 15.625;
 
 let c;
-let energyShapes = [];
+let energyVisArray = [];
+let selectableVisArray = [];
+let ampVisArray = [];
 
 //gui globals
-var ringColor = [0, 255, 0];
 var bgcolor = [0, 0, 0];
 var drywet_fade = 0;
 
@@ -40,7 +38,7 @@ function preload() {
 }
 
 function setup() {
-        c = createCanvas(960, 540);
+        c = createCanvas(windowWidth, windowHeight);
         frameRate(30);
 
         //play unfiltered
@@ -49,7 +47,6 @@ function setup() {
         master = new p5.Effect();
 
         audio.play();
-        //audio.disconnect();
         audio.connect(master);
         master.connect();
 
@@ -61,12 +58,10 @@ function setup() {
         //audio.connect();
         //audio.play();
 
-        //display visualizer
-        visualizer = new FftVis();
+        visualizer = new FftVis(); //display visualizer
         visualizer.setup(filter);
 
-        ampV = new AmpVis();
-        ampV.setup(filter);
+        ampVisArray.push( new AmpVis(500,500,filter) ); //new amplitude visualizer
 
         //create layout gui
         gui = createGui('audio');
@@ -80,11 +75,6 @@ function setup() {
         // gui.addGlobals('oct_center');
         //sliderRange(0, 255, 1);
         //gui.addGlobals('fftbands');
-
-        temp = new EnergyVis(random(0, c.width), random(0, c.height), filter, .2);
-
-        tempSelect = new selectableVis(20, 500, 3, filter, .8, 300, 1, color(180, 100, 30));
-
 }
 
 function draw() {
@@ -96,15 +86,20 @@ function draw() {
         filter.drywet(drywet_fade);
 
         visualizer.draw();
-        ampV.draw();
 
-        temp.draw();
+	//draw visualizations
+	ampVisArray.forEach(ampVis => {
+		ampVis.draw();
+	});
 
-        tempSelect.update();
-        tempSelect.drawSelector();
-        tempSelect.drawViz();
+	selectableVisArray.forEach(vis => {
+		vis.update();
+                vis.drawSelector();
+		vis.drawViz();
+        });
 
-        energyShapes.forEach(shape => {
+
+        energyVisArray.forEach(shape => {
                 shape.draw()
         });
 
@@ -143,29 +138,34 @@ function keyPressed() {
 }
 
 function mouseClicked() {
-        energyShapes.push(new EnergyVis(mouseX, mouseY, filter, .8));
-        console.log("mouse clicked");
+        energyVisArray.push(new EnergyVis(mouseX, mouseY, filter, .8));
+
 }
 
-function AmpVis() {
-        this.setup = function(obj) {
-                this.amp = new p5.Amplitude(ampsmooth);
-                this.amp.setInput(obj);
-        }
+function AmpVis(x, y, obj) {
+	this.x = x; this.y = y;
+	this.amp = 500;
+
+	this.ampObj = new p5.Amplitude(0);
+	this.ampObj.setInput(obj);
+
         this.draw = function() {
-                this.level = this.amp.getLevel();
-                this.size = map(this.level, 0, 1, 0, 1000);
+                this.level = this.ampObj.getLevel();
+		console.log("Pre smooth: " + this.level);
+		this.level = buffSmooth(this.level, .9);
+		console.log("Post smooth: " + this.level);
+                this.size = map(this.level, 0, 1, 0, this.amp);
                 strokeWeight(2);
-                stroke(ringColor);
+                stroke(255);
                 noFill();
                 ellipse(c.width / 2, c.height / 2, this.size, this.size);
         }
 }
 
-function EnergyVis(x, y, src, smooth) {
+function EnergyVis(x, y, src) {
         this.x = x;
         this.y = y;
-        this.fft = new p5.FFT(smooth);
+        this.fft = new p5.FFT();
         this.fft.setInput(src);
 
         this.draw = function() {
@@ -173,21 +173,23 @@ function EnergyVis(x, y, src, smooth) {
                 this.fft.analyze();
                 this.freq = map(this.x, 0, c.width, 10, 22050);
                 this.avg = map(mouseY, 0, c.height, 0, 500);
-                this.freqValue = this.fft.getEnergy(this.freq - this.avg, this.freq + this.avg);
+                this.amp = this.fft.getEnergy(this.freq - this.avg, this.freq + this.avg);
+
+		this.amp = buffSmooth(this.amp);
 
                 colorMode(RGB);
                 strokeWeight(2);
                 stroke(0, 150, 255);
-                ellipse(xSnap(this.x), ySnap(this.y), map(this.freqValue, 0, 255, 0, 200));
+                ellipse(xSnap(this.x), ySnap(this.y), map(this.amp, 0, 255, 0, 200));
 
                 // filterFreq = map(mouseX, 0, c.width, 10, 22050);
                 // filterWidth = map(mouseY, 0, c.height, 0, 90);
         }
 }
 
-function selectableVis(freqLo, freqHi, ampMult, src, smooth, x, y, color) {
-        this.loFreq = freqLo;
-        this.hiFreq = freqHi;
+function selectableVis(ampMult, src, smooth, x, y, color) {
+        //this.loFreq = freqLo;
+        //this.hiFreq = freqHi;
         this.ampMult = ampMult;
 
         this.x = x;
@@ -198,8 +200,13 @@ function selectableVis(freqLo, freqHi, ampMult, src, smooth, x, y, color) {
         this.fft.setInput(src);
 
         let randomPos = random(0, 100);
-        loSlider = createSlider(0, 100, randomPos);
-        hiSlider = createSlider(0, 100, randomPos + 10);
+	div = createDiv('Name' + this);
+	createElement('t', 'Low:').parent(div);
+        loSlider = createSlider(0, 100, randomPos).parent(div);
+	createElement('t', 'Hi:').parent(div);
+        hiSlider = createSlider(0, 100, randomPos + 10).parent(div);
+
+
 
 
         this.update = function() {
@@ -279,3 +286,8 @@ function selectableVis(freqLo, freqHi, ampMult, src, smooth, x, y, color) {
                 y = y * h;
                 return y;
         }
+	function buffSmooth(value, smoothRate) {
+		valSmoothed = value * smoothRate;
+		if (valSmoothed < value) valSmoothed = value;
+		return valSmoothed;
+	}
