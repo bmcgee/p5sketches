@@ -61,7 +61,8 @@ function setup() {
         visualizer = new FftVis(); //display visualizer
         visualizer.setup(filter);
 
-        ampVisArray.push( new AmpVis(500,500,filter) ); //new amplitude visualizer
+	temp = new AmpVis(width/2, height/2, filter, 1.2, .2, .85);
+        ampVisArray.push( temp ); //new amplitude visualizer
 
         //create layout gui
         gui = createGui('audio');
@@ -89,6 +90,7 @@ function draw() {
 
 	//draw visualizations
 	ampVisArray.forEach(ampVis => {
+		ampVis.update();
 		ampVis.draw();
 	});
 
@@ -138,29 +140,40 @@ function keyPressed() {
 }
 
 function mouseClicked() {
-        energyVisArray.push(new EnergyVis(mouseX, mouseY, filter, .8));
+        energyVisArray.push(new EnergyVis(mouseX, mouseY, filter, 1));
 
 }
 
-function AmpVis(x, y, obj) {
-	this.x = x; this.y = y;
-	this.amp = 500;
-
-	this.ampObj = new p5.Amplitude(0);
-	this.ampObj.setInput(obj);
-
-        this.draw = function() {
-                this.level = this.ampObj.getLevel();
-		console.log("Pre smooth: " + this.level);
-		this.level = buffSmooth(this.level, .9);
-		console.log("Post smooth: " + this.level);
-                this.size = map(this.level, 0, 1, 0, this.amp);
-                strokeWeight(2);
-                stroke(255);
-                noFill();
-                ellipse(c.width / 2, c.height / 2, this.size, this.size);
-        }
-}
+// function AmpVis(x, y, obj, smoothRate) {
+// 	this.x = x; this.y = y;
+// 	this.amp = 500;
+// 	this.smoothRate = smoothRate;
+// 	this.levelSmooth = 0;
+// 	//let this.freqValues[10] = 0;
+// 	console.log(this.levelSmooth);
+//
+// 	this.ampObj = new p5.Amplitude(.001);
+// 	this.ampObj.setInput(obj);
+//
+//
+//
+//         this.draw = function() {
+//                 this.level = this.ampObj.getLevel();
+// 		//a(i+1) = tiny*data(i+1) + (1.0-tiny)*a(i)
+//
+// 		this.levelSmooth *= .9;
+// 		if (this.levelSmooth < this.level) {
+// 			this.levelSmooth = (((this.level - this.levelSmooth) * .2) + this.levelSmooth);
+// 		};
+//
+//
+//                 this.size = map(this.levelSmooth, 0, 1, 0, this.amp);
+//                 strokeWeight(2);
+//                 stroke(255);
+//                 noFill();
+//                 ellipse(c.width / 2, c.height / 2, this.size, this.size);
+//         }
+// }
 
 function EnergyVis(x, y, src) {
         this.x = x;
@@ -175,7 +188,7 @@ function EnergyVis(x, y, src) {
                 this.avg = map(mouseY, 0, c.height, 0, 500);
                 this.amp = this.fft.getEnergy(this.freq - this.avg, this.freq + this.avg);
 
-		this.amp = buffSmooth(this.amp);
+		//this.amp = buffSmooth(this.amp);
 
                 colorMode(RGB);
                 strokeWeight(2);
@@ -238,56 +251,3 @@ function selectableVis(ampMult, src, smooth, x, y, color) {
 
 
         }
-
-        // helper functions via
-        // https://github.com/borismus/spectrograph/blob/master/g-spectrograph.js
-        // MIT license
-
-        /**
-         * Given an index and the total number of entries, return the
-         * log-scaled value.
-         */
-        function logScale(index, total, opt_base) {
-                var base = opt_base || 2;
-                var logmax = logBase(total + 1, base);
-                var exp = logmax * index / total;
-                return Math.round(Math.pow(base, exp) - 1);
-        }
-
-        function logBase(val, base) {
-                return Math.log(val) / Math.log(base);
-        }
-
-        function xScale(x, min, max) {
-                let t = min * (max / min);
-                x = math.pow(t, x);
-        }
-
-        function db(x) {
-                if (x == 0) {
-                        return 0;
-                } else {
-                        return 10 * Math.log10(x);
-                }
-        }
-
-        function xSnap(x) {
-                h = 96;
-                x = x / h;
-                x = Math.round(x);
-                x = x * h;
-                return x;
-        }
-
-        function ySnap(y) {
-                w = 54;
-                y = y / h;
-                y = Math.round(y);
-                y = y * h;
-                return y;
-        }
-	function buffSmooth(value, smoothRate) {
-		valSmoothed = value * smoothRate;
-		if (valSmoothed < value) valSmoothed = value;
-		return valSmoothed;
-	}
