@@ -1,44 +1,47 @@
-class VizElement {
-	constructor(x = 0, y = 0, audioObj, ampMult = 1, smoothIn = 0, smoothOut = 0) {
-		console.log("X" + x);
-		this.x = x;
-		this.y = y;
+class Vis {
+	constructor({
+		audioObj,
+		xy = [width/2, height/2],
+		ampMult = 100,
+		smooth = .99,
+		rgb = [255,255,255],
+	}) {
+		if (audioObj == undefined) {
+			throw new Error("missing audioObj");
+		}
+		this.audioObj = audioObj;  			//audiobject for input
+		this.xy = xy;
+		this.pos = createVector(xy[0],xy[1]);
 		this.ampMult = ampMult;
-		this.audioObj = audioObj;
-		this.smoothIn = smoothIn;
-		this.smoothOut = smoothOut;
-		this.val = 0;
+		this.smooth = smooth;
+		this.col = color(rgb[0],rgb[1],rgb[2]);
+		this.size = 100;
+
+		// this.ampMult = ampMult || 100; 		//amp multiplier - used to dynamically scale and for effectors
+		// this.smooth = smooth || .85;  		//smooths incoming and outgoing values
+		// this.col = col || color(random(0, 255), random(0, 255), random(0, 255)); //color the visualization
+		this.value = 0;  			//initival values
 		this.valSmoothed = 0;
-		this.col = color(random(0, 255), random(0, 255), random(0, 255));
 	}
-	smoothVal() {
-		this.valSmoothed *= this.smoothOut;
-		if (this.valSmoothed < this.val) {
-			this.valSmoothed = (((this.val - this.valSmoothed) * .2) + this.val);
-		};
-		return this.valSmoothed;
+}	
+
+class AmpVis {
+	constructor(obj) {
+		this.ampObj = new p5.Amplitude(0);	//new amp p5 WITH SMOOTH AT 0
+		this.ampObj.setInput(this.audioObj);	//bind object
 	}
-}
 
-class AmpVis extends VizElement {
-	// constructor() {
-	// 	super();
-	// 
-	// }
-
-			//super(x, y, ampMult, audioObj, val, valSmoothed, col)
-	this.amp = 100;
-
-	this.ampObj = new p5.Amplitude(0); //new amp p5 WITH SMOOTH AT 0
-	this.ampObj.setInput(this.audioObj);
 	update() {
 		this.val = this.ampObj.getLevel();
-		this.rad = map(this.smoothVal(), 0, 1, 0, this.amp);
+		smoothVal(this);
+		console.log("Val: ", this.val, "   Smothed: ", this.valSmoothed);
 	}
 	draw() {
 		strokeWeight(2);
-		stroke(255);
+		stroke(this.col);
 		noFill();
-		ellipse(this.x, this.y, this.rad, this.rad);
+		let radius = map(this.valSmoothed, 0, 1, 0, this.size) * this.ampMult;
+		ellipse(this.pos.x, this.pos.y, radius, radius);
+	//	console.log("drawing");
 	}
 }

@@ -54,6 +54,7 @@ function setup() {
         filter = new p5.BandPass();
         audio.connect(filter);
         filter.disconnect();
+        audio.setVolume(.2);
 
         //audio.connect();
         //audio.play();
@@ -61,7 +62,7 @@ function setup() {
         visualizer = new FftVis(); //display visualizer
         visualizer.setup(filter);
 
-	temp = new AmpVis(width/2, height/2, filter, 1.2, .2, .85);
+	temp = new AmpVis({audioObj: filter});
         ampVisArray.push( temp ); //new amplitude visualizer
 
         //create layout gui

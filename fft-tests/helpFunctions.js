@@ -6,6 +6,17 @@
  * Given an index and the total number of entries, return the
  * log-scaled value.
  */
+
+ function smoothVal(obj) {
+        // console.log(obj);
+         obj.valSmoothed *= obj.smooth;
+        // console.log(obj.valSmoothed);
+         if (obj.valSmoothed < obj.val) {
+                 obj.valSmoothed = (((obj.val - obj.valSmoothed) * (obj.smooth)) + obj.val);
+         };
+         return obj.valSmoothed;
+ }
+
 function logScale(index, total, opt_base) {
         var base = opt_base || 2;
         var logmax = logBase(total + 1, base);
