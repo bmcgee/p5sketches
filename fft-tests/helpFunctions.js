@@ -1,44 +1,13 @@
-// helper functions via
-// https://github.com/borismus/spectrograph/blob/master/g-spectrograph.js
-// MIT license
-
-/**
- * Given an index and the total number of entries, return the
- * log-scaled value.
- */
-
- function smoothVal(obj) {
+function smoothVal(obj) {
         // console.log(obj);
-         obj.valSmoothed *= obj.smooth;
+        obj.valSmoothed *= obj.smoothIn;
         // console.log(obj.valSmoothed);
-         if (obj.valSmoothed < obj.val) {
-                 obj.valSmoothed = (((obj.val - obj.valSmoothed) * (obj.smooth)) + obj.val);
-         };
-         return obj.valSmoothed;
- }
-
-function logScale(index, total, opt_base) {
-        var base = opt_base || 2;
-        var logmax = logBase(total + 1, base);
-        var exp = logmax * index / total;
-        return Math.round(Math.pow(base, exp) - 1);
-}
-
-function logBase(val, base) {
-        return Math.log(val) / Math.log(base);
-}
-
-function xScale(x, min, max) {
-        let t = min * (max / min);
-        x = math.pow(t, x);
-}
-
-function db(x) {
-        if (x == 0) {
-                return 0;
-        } else {
-                return 10 * Math.log10(x);
-        }
+        // if (valSmoothed < value) valSmoothed = value;
+        if (obj.valSmoothed < obj.val) {
+                //a(i+1) = tiny*data(i+1) + (1.0-tiny)*a(i)
+                obj.valSmoothed = obj.valSmoothed + ((obj.val - obj.valSmoothed) * (obj.smoothOut));
+        };
+        return obj.valSmoothed;
 }
 
 function xSnap(x) {
@@ -56,6 +25,33 @@ function ySnap(y) {
         y = y * w;
         return y;
 }
+
+
+function db(x) {
+        if (x == 0) {
+                return 0;
+        } else {
+                return 10 * Math.log10(x);
+        }
+}
+
+function logScale(index, total, opt_base) {
+        var base = opt_base || 2;
+        var logmax = logBase(total + 1, base);
+        var exp = logmax * index / total;
+        return Math.round(Math.pow(base, exp) - 1);
+}
+
+function logBase(val, base) {
+        return Math.log(val) / Math.log(base);
+}
+
+function xScale(x, min, max) {
+        let t = min * (max / min);
+        x = math.pow(t, x);
+}
+
+
 // function buffSmooth(value, smoothRate) {
 // 	valSmoothed *= smoothRate;
 // 	if (valSmoothed < value) valSmoothed = value;

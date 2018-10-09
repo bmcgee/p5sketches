@@ -13,9 +13,8 @@ var oct_bands = 4;
 var oct_center = 15.625;
 
 let c;
-let energyVisArray = [];
-let selectableVisArray = [];
-let ampVisArray = [];
+
+let visualizers = [];
 
 //gui globals
 var bgcolor = [0, 0, 0];
@@ -28,17 +27,21 @@ let gui;
 let analyzeType = 'xx';
 
 //var capturer = new CCapture( { format: 'png' } );
+var capturer = new CCapture( {
+        format: 'webm',
+        framerate: 30,
+        verbose: true,
+        //display:true,
+
+} );
+
 
 function preload() {
-
-        //load audio
         audio = loadSound('assets/02 - Breathe (In the Air).mp3')
-
-        //audio.start();
 }
 
 function setup() {
-        c = createCanvas(windowWidth, windowHeight);
+        createCanvas(windowWidth, windowHeight);
         frameRate(30);
 
         //play unfiltered
@@ -62,51 +65,39 @@ function setup() {
         visualizer = new FftVis(); //display visualizer
         visualizer.setup(filter);
 
-	temp = new AmpVis({audioObj: filter});
-        ampVisArray.push( temp ); //new amplitude visualizer
+        temp = new AmpVis(new Vis({
+                audioObj: filter
+        }));
+        visualizers.push(temp); //new amplitude visualizer
 
         //create layout gui
         gui = createGui('audio');
 
-        // gui.addGlobals('ringColor', 'bgcolor');
-        // sliderRange(0, 1, 0.1);
         gui.addGlobals('drywet_fade');
         sliderRange(0, 10, 1);
-        // gui.addGlobals('oct_bands');
-        // sliderRange(0, 100, .001);
-        // gui.addGlobals('oct_center');
-        //sliderRange(0, 255, 1);
-        //gui.addGlobals('fftbands');
+
+
+
 }
 
 function draw() {
         background(0, 0, 0, 255);
 
-        filterFreq = map(mouseX, 0, c.width, 10, 22050);
-        filterWidth = map(mouseY, 0, c.height, 0, 90);
+        filterFreq = map(mouseX, 0, width, 10, 22050);
+        filterWidth = map(mouseY, 0, height, 0, 90);
         filter.set(filterFreq, filterWidth);
         filter.drywet(drywet_fade);
 
         visualizer.draw();
 
-	//draw visualizations
-	ampVisArray.forEach(ampVis => {
-		ampVis.update();
-		ampVis.draw();
-	});
-
-	selectableVisArray.forEach(vis => {
-		vis.update();
-                vis.drawSelector();
-		vis.drawViz();
-        });
-
-
-        energyVisArray.forEach(shape => {
-                shape.draw()
+        //draw visualizations
+        visualizers.forEach(vis => {
+                vis.update();
+                vis.draw();
         });
 
         //capturer.capture(c);
+        capturer.capture( canvas );
 
 
 }
@@ -135,120 +126,18 @@ function keyPressed() {
                         }
                         console.log(analyzeType);
                         break;
+                case 'n':
+                        capturer.start();
+                        break;
+                case 'm':
+                        capturer.stop();
+                        capturer.save();
 
         }
 
 }
 
 function mouseClicked() {
-        energyVisArray.push(new EnergyVis(mouseX, mouseY, filter, 1));
+        visualizers.push(new fftLocationVis(new Vis({audioObj: filter})));
 
 }
-
-// function AmpVis(x, y, obj, smoothRate) {
-// 	this.x = x; this.y = y;
-// 	this.amp = 500;
-// 	this.smoothRate = smoothRate;
-// 	this.levelSmooth = 0;
-// 	//let this.freqValues[10] = 0;
-// 	console.log(this.levelSmooth);
-//
-// 	this.ampObj = new p5.Amplitude(.001);
-// 	this.ampObj.setInput(obj);
-//
-//
-//
-//         this.draw = function() {
-//                 this.level = this.ampObj.getLevel();
-// 		//a(i+1) = tiny*data(i+1) + (1.0-tiny)*a(i)
-//
-// 		this.levelSmooth *= .9;
-// 		if (this.levelSmooth < this.level) {
-// 			this.levelSmooth = (((this.level - this.levelSmooth) * .2) + this.levelSmooth);
-// 		};
-//
-//
-//                 this.size = map(this.levelSmooth, 0, 1, 0, this.amp);
-//                 strokeWeight(2);
-//                 stroke(255);
-//                 noFill();
-//                 ellipse(c.width / 2, c.height / 2, this.size, this.size);
-//         }
-// }
-
-function EnergyVis(x, y, src) {
-        this.x = x;
-        this.y = y;
-        this.fft = new p5.FFT();
-        this.fft.setInput(src);
-
-        this.draw = function() {
-                this.fft.mode = 'xx'
-                this.fft.analyze();
-                this.freq = map(this.x, 0, c.width, 10, 22050);
-                this.avg = map(mouseY, 0, c.height, 0, 500);
-                this.amp = this.fft.getEnergy(this.freq - this.avg, this.freq + this.avg);
-
-		//this.amp = buffSmooth(this.amp);
-
-                colorMode(RGB);
-                strokeWeight(2);
-                stroke(0, 150, 255);
-                ellipse(xSnap(this.x), ySnap(this.y), map(this.amp, 0, 255, 0, 200));
-
-                // filterFreq = map(mouseX, 0, c.width, 10, 22050);
-                // filterWidth = map(mouseY, 0, c.height, 0, 90);
-        }
-}
-
-function selectableVis(ampMult, src, smooth, x, y, color) {
-        //this.loFreq = freqLo;
-        //this.hiFreq = freqHi;
-        this.ampMult = ampMult;
-
-        this.x = x;
-        this.y = y;
-        this.color = color;
-
-        this.fft = new p5.FFT(smooth);
-        this.fft.setInput(src);
-
-        let randomPos = random(0, 100);
-	div = createDiv('Name' + this);
-	createElement('t', 'Low:').parent(div);
-        loSlider = createSlider(0, 100, randomPos).parent(div);
-	createElement('t', 'Hi:').parent(div);
-        hiSlider = createSlider(0, 100, randomPos + 10).parent(div);
-
-
-
-
-        this.update = function() {
-                this.fft.analyze();
-                this.freq = map()
-                this.loFreq = map(loSlider.value(), 0, 100, 10, 22050);
-                this.hiFreq = map(hiSlider.value(), 0, 100, 10, 22050);
-                this.energy = this.fft.getEnergy(this.loFreq, this.hiFreq);
-        }
-
-        this.drawSelector = function() {
-                colorMode(RGB);
-                strokeWeight(1);
-                stroke(this.color);
-                x_lo = map(this.loFreq, 10, 22050, 0, width);
-                x_hi = map(this.hiFreq, 10, 22050, 0, width);
-                line(x_lo, height, x_lo, height-100);
-                line(x_hi, height, x_hi, height-100);
-
-
-        }
-        this.drawViz = function() {
-                colorMode(RGB);
-                strokeWeight(2);
-                stroke(this.color);
-                ellipse(this.x, this.y, (this.energy*this.ampMult));
-                }
-
-
-
-        }
